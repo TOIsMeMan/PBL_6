@@ -198,9 +198,68 @@ def correct_with_gemini(prediction, api_key):
         print(f"❌ Error calling Gemini API: {str(e)}")
         return prediction
 
+def translate_with_gemini(text, api_key, target_language="Vietnamese"):
+    """Dịch text sang ngôn ngữ khác bằng Gemini API"""
+    
+    if not api_key:
+        print("⚠️ No Gemini API key provided")
+        return text
+    
+    try:
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+        
+        headers = {
+            "Content-Type": "application/json",
+            "X-goog-api-key": "AIzaSyDcqE4-ECdIbYChPXwu7Mg0KpgCaATab44"
+        }
+        
+        prompt = f"""
+        Translate the following English text to {target_language}. 
+        Keep the same tone, context, and sentence length. Make it natural and fluent.
+        
+        Text to translate: "{text}"
+        
+        Translation:
+        """
+        
+        data = {
+            "contents": [{
+                "parts": [{
+                    "text": prompt
+                }]
+            }]
+        }
+        
+        response = requests.post(url, headers=headers, json=data, timeout=15)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if 'candidates' in result and len(result['candidates']) > 0:
+                candidate = result['candidates'][0]
+                if 'content' in candidate and 'parts' in candidate['content']:
+                    translated = candidate['content']['parts'][0]['text'].strip()
+                    
+                    # Clean up response
+                    if "Translation:" in translated:
+                        translated = translated.split("Translation:")[-1].strip()
+                    
+                    if translated and translated != text:
+                        print(f"✅ Gemini translation success")
+                        return translated
+            
+            print("⚠️ No valid translation from Gemini")
+            return text
+        else:
+            print(f"❌ Gemini translation error: {response.status_code}")
+            return text
+            
+    except Exception as e:
+        print(f"❌ Error calling Gemini translation: {str(e)}")
+        return text
+
 def test_audio(audio_path, model, tokenizer, audio2mels, amp2db, device, 
-               use_gemini=False, gemini_api_key=None):
-    """Test 1 file audio với tùy chọn sửa bằng Gemini"""
+               use_gemini=False, gemini_api_key=None, translate_to="Vietnamese"):
+    """Test 1 file audio với tùy chọn sửa và dịch bằng Gemini"""
     
     print(f"🎵 Testing: {os.path.basename(audio_path)}")
     print("=" * 60)
@@ -253,6 +312,12 @@ def test_audio(audio_path, model, tokenizer, audio2mels, amp2db, device,
         
         if corrected_prediction != ai_prediction:
             print(f"✨ GEMINI CORRECTED:    '{corrected_prediction}'")
+            
+            # Dịch sau khi correct
+            if translate_to and translate_to.lower() != "english":
+                print(f"🌐 Gemini đang dịch sang {translate_to}...")
+                translated_text = translate_with_gemini(corrected_prediction, gemini_api_key, translate_to)
+                print(f"🗣️ TRANSLATED TO {translate_to.upper()}: '{translated_text}'")
         else:
             print(f"⚠️ Gemini correction failed, keeping original")
     
@@ -278,19 +343,20 @@ def test_audio(audio_path, model, tokenizer, audio2mels, amp2db, device,
         else:
             print("❌ POOR! Prediction needs improvement!")
             
-        # Hiển thị thông tin Gemini correction (nhưng không so sánh)
+        # Hiển thị thông tin Gemini correction và translation (nhưng không so sánh)
         if use_gemini and corrected_prediction != ai_prediction:
             print(f"")
-            print(f"💡 Gemini suggested: '{corrected_prediction}'")
-            print(f"   (This is just AI enhancement, not measured against ground truth)")
+            print(f"💡 Gemini enhancement pipeline completed:")
+            print(f"   Original → Corrected → Translated")
+            print(f"   (AI enhancements, not measured against ground truth)")
             
     else:
         print("📝 No ground truth found")
         
-        # Nếu không có ground truth, vẫn hiển thị Gemini correction
+        # Nếu không có ground truth, vẫn hiển thị Gemini pipeline
         if use_gemini and corrected_prediction != ai_prediction:
             print(f"")
-            print(f"💡 Gemini suggested: '{corrected_prediction}'")
+            print(f"💡 Gemini enhancement pipeline completed")
     
     print("=" * 60)
     return ai_prediction  # Return original prediction, not corrected
@@ -314,32 +380,43 @@ def show_available_speakers():
 # ==========================================
 
 if __name__ == "__main__":
-    print("🚀 Simple DeepSpeech2 Audio Tester with Gemini 2.0 AI")
+    print("🚀 DeepSpeech2 with Gemini Correction & Translation")
     print("=" * 60)
     
     # Load model
     model, tokenizer, audio2mels, amp2db, device = load_model()
     
     # ✨ THAY ĐỔI ĐƯỜNG DẪN FILE Ở ĐÂY ✨
-    audio_file = "E:\\PBL6\\LibriSpeech\\test-clean\\2300\\131720\\2300-131720-0012.flac"
+    audio_file = "E:\\PBL6\\LibriSpeech\\test-clean\\8224\\274381\\8224-274381-0005.flac"
     
     # ✨ CẤU HÌNH GEMINI API ✨
     USE_GEMINI = True  # True để dùng Gemini, False để không dùng
     GEMINI_API_KEY = "AIzaSyDcqE4-ECdIbYChPXwu7Mg0KpgCaATab44"  # ← API KEY CỦA BẠN
+    TRANSLATE_TO = "Vietnamese"  # "Vietnamese", "Chinese", "Japanese", "French", etc.
     
-    # Test file với Gemini correction
+    # Test file với Gemini correction & translation
     test_audio(audio_file, model, tokenizer, audio2mels, amp2db, device,
-               use_gemini=USE_GEMINI, gemini_api_key=GEMINI_API_KEY)
+               use_gemini=USE_GEMINI, 
+               gemini_api_key=GEMINI_API_KEY,
+               translate_to=TRANSLATE_TO)
     
+    print("\n🔄 To test another file:")
+    print("1. Change 'audio_file' path")
+    print("2. Set USE_GEMINI = True/False")
+    print("3. Change TRANSLATE_TO language")
+    print("4. Run script again")
     
-    print("\n💎 Gemini 2.0 Flash Settings:")
+    print("\n💎 Gemini Enhancement Pipeline:")
     print(f"- USE_GEMINI = {USE_GEMINI}")
+    print(f"- TRANSLATE_TO = {TRANSLATE_TO}")
     print(f"- Model: gemini-2.0-flash")
     if GEMINI_API_KEY and len(GEMINI_API_KEY) > 20:
         print("- GEMINI_API_KEY = ✅ Configured")
     else:
         print("- GEMINI_API_KEY = ❌ Not configured")
-        print("- Get API key: https://aistudio.google.com/app/apikey")
+    
+    print("\n🌐 Supported Languages:")
+    print("- Vietnamese, Chinese, Japanese, French, German, Spanish, etc.")
     
     print("\n" + "=" * 60)
     print("✅ Script completed!")
