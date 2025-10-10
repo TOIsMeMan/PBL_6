@@ -1,0 +1,1 @@
+# FastAPI TikTok Clone Application
