@@ -1,3 +1,8 @@
+﻿# Large files and datasets
+LibriSpeech.zip
+LibriSpeech/
+*.zip
+
 # Python
 __pycache__/
 *.py[cod]
@@ -22,6 +27,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.venv/
+*.pyc
 
 # Virtual Environment
 venv/
@@ -51,21 +58,29 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Uploaded files
-static/videos/*
-static/thumbnails/*
-static/avatars/*
-uploads/
+# Jupyter
+.ipynb_checkpoints/
+
+# Model weights (>100MB will fail GitHub push)
+# Uncomment if weights are too large:
+# *.pt
+# best_weights*.pt
+
+# Uploaded files (in fastapi-tiktok-clone)
+fastapi-tiktok-clone/static/videos/*
+fastapi-tiktok-clone/static/thumbnails/*
+fastapi-tiktok-clone/static/avatars/*
+fastapi-tiktok-clone/uploads/
 
 # Keep directory structure but ignore content
-!static/videos/.gitkeep
-!static/thumbnails/.gitkeep
-!static/avatars/.gitkeep
-!uploads/temp/.gitkeep
+!fastapi-tiktok-clone/static/videos/.gitkeep
+!fastapi-tiktok-clone/static/thumbnails/.gitkeep
+!fastapi-tiktok-clone/static/avatars/.gitkeep
+!fastapi-tiktok-clone/uploads/temp/.gitkeep
 
 # Alembic
-alembic/versions/*
-!alembic/versions/.gitkeep
+fastapi-tiktok-clone/alembic/versions/*
+!fastapi-tiktok-clone/alembic/versions/.gitkeep
 
 # PyCharm
 .idea/
