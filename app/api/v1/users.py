@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.user import UserResponse, UserUpdate
 from app.api.deps import get_current_user
+from app.utils.validators import validate_image_file_extension, validate_file_size
 import os
 from app.core.config import settings
 
@@ -59,14 +60,22 @@ async def upload_avatar(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Validate file type
-    allowed_extensions = [".jpg", ".jpeg", ".png", ".gif"]
-    file_ext = os.path.splitext(file.filename)[1].lower()
-    
-    if file_ext not in allowed_extensions:
+    # Validate file type using utility function
+    if not validate_image_file_extension(file.filename):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File type not allowed. Allowed types: {', '.join(allowed_extensions)}"
+            detail="File type not allowed. Allowed types: .jpg, .jpeg, .png, .gif, .webp"
+        )
+    
+    # Read file content first to check size
+    content = await file.read()
+    
+    # Validate file size (5MB max for images)
+    max_size = getattr(settings, 'MAX_IMAGE_SIZE', 5 * 1024 * 1024)  # 5MB default
+    if not validate_file_size(len(content), max_size):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File size exceeds maximum allowed size of {max_size / (1024 * 1024):.1f}MB"
         )
     
     # Create upload directory if not exists
@@ -74,9 +83,9 @@ async def upload_avatar(
     os.makedirs(upload_dir, exist_ok=True)
     
     # Save file
+    file_ext = os.path.splitext(file.filename)[1].lower()
     file_path = os.path.join(upload_dir, f"{current_user.id}{file_ext}")
     with open(file_path, "wb") as buffer:
-        content = await file.read()
         buffer.write(content)
     
     # Update user avatar URL

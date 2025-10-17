@@ -52,7 +52,7 @@ Backend API cho ứng dụng chia sẻ video kiểu TikTok, được xây dựng
 
 - CRUD operations cho videos   FLUSH PRIVILEGES;
 
-- Kiểm tra độ dài video (≤ 300 giây)   ```
+- Kiểm tra độ dài video (≤ 120 giây)   ```
 
 - Phân loại video: Public/Hidden/Deleted
 
@@ -601,7 +601,7 @@ fastapi-tiktok-clone/
 
 ### **Giới hạn hiện tại:**
 
-- Video tối đa **300 giây** (5 phút)
+- Video tối đa **120 giây** (2 phút)
 - Upload size tối đa **100MB**
 - Token expire sau **7 ngày**
 

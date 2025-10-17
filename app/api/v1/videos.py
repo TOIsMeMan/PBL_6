@@ -9,10 +9,11 @@ from app.models.like import Like
 from app.models.comment import Comment
 from app.schemas.video import VideoResponse, VideoUpdate
 from app.api.deps import get_current_user
+from app.utils.validators import validate_video_file_extension
+from app.utils.video_processing import extract_video_info, generate_thumbnail, validate_video_duration
 import os
 import uuid
 from app.core.config import settings
-import cv2
 
 router = APIRouter()
 
@@ -27,14 +28,11 @@ async def upload_video(
     db: Session = Depends(get_db)
 ):
     try:
-        # Validate file type
-        allowed_extensions = [".mp4", ".avi", ".mov", ".mkv"]
-        file_ext = os.path.splitext(file.filename)[1].lower()
-        
-        if file_ext not in allowed_extensions:
+        # Validate file type using utility function
+        if not validate_video_file_extension(file.filename):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"File type not allowed. Allowed types: {', '.join(allowed_extensions)}"
+                detail="File type not allowed. Allowed types: .mp4, .avi, .mov, .mkv, .webm"
             )
         
         # Create directories
@@ -44,6 +42,7 @@ async def upload_video(
         os.makedirs(thumbnail_dir, exist_ok=True)
         
         # Generate unique filename
+        file_ext = os.path.splitext(file.filename)[1].lower()
         unique_filename = f"{uuid.uuid4()}{file_ext}"
         video_path = os.path.join(video_dir, unique_filename)
         
@@ -60,37 +59,31 @@ async def upload_video(
             detail=f"Failed to save video: {str(e)}"
         )
     
-    # Get video duration and generate thumbnail
+    # Get video duration and generate thumbnail using utility functions
     duration_sec = 0
     thumb_url = None
     
     try:
-        cap = cv2.VideoCapture(video_path)
-        if not cap.isOpened():
-            print(f"Warning: Could not open video file: {video_path}")
-        else:
-            fps = cap.get(cv2.CAP_PROP_FPS)
-            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            duration_sec = int(frame_count / fps) if fps > 0 else 0
-            
-            # Check duration limit (300 seconds = 5 minutes)
-            if duration_sec > 300:
-                cap.release()
-                os.remove(video_path)
-                raise HTTPException(
+        # Extract video information
+        duration_sec, width, height = extract_video_info(video_path)
+        print(f"Video info: duration={duration_sec}s, size={width}x{height}")
+        
+        # Validate video duration (max 120 seconds = 2 minutes)
+        if not validate_video_duration(video_path, max_duration=120):
+            os.remove(video_path)
+            raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Video duration exceeds 5 minutes limit"
-                )
+                detail="Video duration exceeds 2 minutes limit"
+            )
+        
+        # Generate thumbnail using utility function
+        thumbnail_filename = generate_thumbnail(video_path, thumbnail_dir, frame_time=0.0)
+        if thumbnail_filename:
+            thumb_url = f"/static/thumbnails/{thumbnail_filename}"
+            print(f"Thumbnail generated: {thumbnail_filename}")
+        else:
+            print("Warning: Could not generate thumbnail")
             
-            # Generate thumbnail from first frame
-            ret, frame = cap.read()
-            if ret:
-                thumbnail_filename = f"{uuid.uuid4()}.jpg"
-                thumbnail_path = os.path.join(thumbnail_dir, thumbnail_filename)
-                cv2.imwrite(thumbnail_path, frame)
-                thumb_url = f"/static/thumbnails/{thumbnail_filename}"
-            
-            cap.release()
     except HTTPException:
         raise
     except Exception as e:

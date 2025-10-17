@@ -7,6 +7,7 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, Token
 from app.core.security import verify_password, get_password_hash, create_access_token
 from app.core.config import settings
+from app.utils.validators import validate_username
 
 router = APIRouter()
 
@@ -14,6 +15,13 @@ router = APIRouter()
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     try:
+        # Validate username format
+        if not validate_username(user_data.username):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid username format. Must be 3-50 characters, alphanumeric, underscore or dash only"
+            )
+        
         # Check if username exists
         if db.query(User).filter(User.username == user_data.username).first():
             raise HTTPException(
