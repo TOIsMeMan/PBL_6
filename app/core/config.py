@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
+    # Gemini API (for transcription correction)
+    GEMINI_API_KEY: Optional[str] = "AIzaSyAx-qjQv6C0tjmB-qJSSU2KLRTOgQBeAhw"
+    
     # File Upload
     UPLOAD_DIR: str = "uploads"
     STATIC_DIR: str = "static"

@@ -23,6 +23,8 @@ class Video(Base):
     url = Column(String(500), nullable=False)
     hlsUrl = Column(String(500))
     thumbUrl = Column(String(500))
+    transcript = Column(Text)  # Lưu text từ video (transcription)
+    transcriptTimestamps = Column(Text)  # Lưu timestamps JSON format
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
     updatedAt = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     

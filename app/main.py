@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.database import engine, Base
-from app.api.v1 import auth, users, videos, comments, social, messages, reports, notifications
+from app.api.v1 import auth, users, videos, comments, social, messages, reports, notifications, transcription
 import os
 
 # Create database tables
@@ -46,6 +46,7 @@ app.include_router(social.router, prefix=f"{settings.API_V1_STR}/social", tags=[
 app.include_router(messages.router, prefix=f"{settings.API_V1_STR}/messages", tags=["Messages"])
 app.include_router(reports.router, prefix=f"{settings.API_V1_STR}/reports", tags=["Reports"])
 app.include_router(notifications.router, prefix=f"{settings.API_V1_STR}/notifications", tags=["Notifications"])
+app.include_router(transcription.router, prefix=f"{settings.API_V1_STR}/videos", tags=["Video Transcription"])
 
 
 @app.get("/")

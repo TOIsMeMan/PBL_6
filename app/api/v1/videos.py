@@ -13,6 +13,7 @@ from app.utils.validators import validate_video_file_extension
 from app.utils.video_processing import extract_video_info, generate_thumbnail, validate_video_duration
 import os
 import uuid
+import json
 from app.core.config import settings
 
 router = APIRouter()
